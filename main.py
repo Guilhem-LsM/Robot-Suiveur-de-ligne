@@ -1,22 +1,33 @@
-from machine import Pin, PWM
+from machine import ADC, Pin, SPI, PWM
 from time import sleep
-from mcp3008 import MCP3008
-from machine import ADC, Pin, SPI
-from LCD import CharLCD
-from QRE1113 import get_value_binary, get_rotate
-from ButtonUpdate import update_buttons_states
-from Motors import Motor
+from lib.lib_mcp3008 import MCP3008
+from lib.lib_lcd import CharLCD
+from lib.lib_qre1113 import get_error
+from lib.lib_button_update import update_buttons_states
+from lib.lib_motor import Motor
+
+#CONST
+SPEED = 50000
+TRESHOLD = 900
+
+#PID
+KP = 4500
+KD = 5000
+
+KI = 0
+last_error = 0
+sum_errors = 0
 
 # Variables
 
-buttons = buttons = [0,0,0]
+rotation_list = []
+
+buttons = [0,0,0]
 
 lcd = CharLCD(rs=2, en=4, d4=7, d5=8, d6=9, d7=10, cols=16, rows=2)
 
-SPEED = 10000
-
-MotorLeft = Motor(1, 0, 1000)
-MotorRight = Motor(5, 3, 1000)
+motor_left = Motor(1, 0, 1000)
+motor_right = Motor(5, 3, 1000)
 
 adc_BPV11 = ADC(2) #BPV11
 
@@ -33,27 +44,34 @@ while True :
             print(t)
             state = "run"
             sleep(0.5)
-    
     #State run
     if state == "run" :
-        values = get_value_binary(400)
-        rotation = get_rotate(values)
-        rotation_MotorLeft = 1
-        rotation_MotorRight = 1
+        error = get_error(TRESHOLD)
         
-        if rotation > 0 :
-            rotation_MotorRight = int(2.5 - rotation*1/4)
-        elif rotation < 0 :
-            rotation_MotorLeft = int(2.5 - abs(rotation)*1/4)
+        if error == 999 :
+            error = last_error
         
-        MotorLeft.Forward(rotation_MotorLeft * SPEED)
-        MotorRight.Forward(rotation_MotorRight * SPEED)
+        P = KP * error
+        sum_errors += error
+        I = KI * sum_errors
+        D = KD * (error - last_error)
         
+        correction = P + I + D
+        last_error = error
         
-        if t > tesh_BPV11 :
-            print(t)
-            state = "start"
-            sleep(0.5)
+        speed_motor_left = int(SPEED - correction)
+        speed_motor_right = int(SPEED + correction)
+        
+        speed_motor_left = max(0, min(speed_motor_left, 65535))
+        speed_motor_right = max(0, min(speed_motor_right, 65535))
+                
+        lcd.clear()
+        lcd.set_line(0)
+        lcd.message(str(error))
+        
+        motor_left.Forward(speed_motor_left)
+        motor_right.Forward(speed_motor_right)
+                
     
    
 

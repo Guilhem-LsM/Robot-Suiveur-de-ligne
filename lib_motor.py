@@ -1,4 +1,4 @@
-from machine import ADC, Pin, SPI, PWM
+from machine import Pin, PWM
 
 class Motor:
     def __init__(self, pin_forward, pin_backward, f):
