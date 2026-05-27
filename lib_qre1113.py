@@ -16,27 +16,22 @@ def read_all_qre1113():
         values[i] = chip.read(i)
     return values
 
-def get_value_binary_format(threshold):
+def get_value_binary_format(calibration):
     values = read_all_qre1113()
-    #print(values)
     values_binary = [0,0,0,0,0,0,0,0]
     for i in range(0,8):
-        if values[i] > threshold :
+        if values[i] >= calibration[i] * 0.88 :
             values_binary[i] = 1
-    #print(values_binary)
     return values_binary
 
-def get_error(threshold):
-    list_binary = get_value_binary_format(threshold)
-    rotation = 0
-    number_value = 0
-    table_value_QRE1113 = [-4,-3,-2,-1,1,2,3,4]
-    count_zero = 0
+def get_error(calibration):
+    list_values_binary = get_value_binary_format(calibration)
+    error = 0
+    counter = 0
+    QRE1113_Weights = [-4,-3,-2,-1,1,2,3,4]
     for i in range(8) :
-        rotation += list_binary[i] * table_value_QRE1113[i]
-        number_value += list_binary[i]
-    if number_value != 0 :
-        rotation /= number_value
-    else :
-        rotation = 999
-    return rotation
+        counter += list_values_binary[i]
+        error += list_values_binary[i] * QRE1113_Weights[i]
+    if counter > 0 :
+        error /= counter
+    return error
