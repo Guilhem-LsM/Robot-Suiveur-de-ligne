@@ -11,11 +11,11 @@ from lib.lib_motor import Motor
 import time
 
 #CONST
-SPEED_BASE = 30000 #30000
+SPEED_BASE = 40000 #30000
 
 #PID
-KP = 4000 #3500
-KD = 1650 #1400
+KP = 4900 #3500
+KD = 2000 #1400
 KI = 0
 KS = 0
 
