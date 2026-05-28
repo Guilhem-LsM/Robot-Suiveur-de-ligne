@@ -14,8 +14,8 @@ import time
 SPEED_BASE = 40000 #30000
 
 #PID
-KP = 4900 #3500
-KD = 2000 #1400
+KP = 2000 #3500
+KD = 0 #1400
 KI = 0
 KS = 0
 
@@ -30,7 +30,9 @@ speed_motor_right = 0
 
 rotation_list = []
 
-calibration = [900,900,900,900,900,900,900,900]
+calibration_dark = [900,900,900,900,900,900,900,900]
+calibration_clear = [0,0,0,0,0,0,0,0]
+calibration_delta = [0,0,0,0,0,0,0,0]
 calibration_done = False
 
 buttons = [0,0,0]
@@ -83,21 +85,9 @@ def make_a_choice(t):
     global flag_stop
     global timer_stop_counter
     
-    error = get_error(calibration)
-    if error == 999 :
-        error = last_error
-        if not flag_stop :
-            flag_stop = True
-            timer_stop_counter = time.ticks_ms()
-        elif time.ticks_diff(time.ticks_ms(), timer_stop_counter) > 1000:
-            motor_left.Forward(0)
-            motor_right.Forward(0)
-            state = "start"
-            return
-        print(time.ticks_diff(time.ticks_ms(), timer_stop_counter))
-    else :
-        flag_stop = False
-
+    error = get_error(calibration_clear, calibration_delta)
+    #print(error)
+    
     P = KP * error
     sum_errors += error
     I = KI * sum_errors
@@ -129,6 +119,9 @@ def flash_check(t):
         state = "run"
         timer_start.deinit()
         timer_start_state = False
+        for i in range(8):
+            calibration_delta[i] = calibration_dark[i] - calibration_clear[i]
+        
 
 file_name = "log-"+get_formatted_time()
 
@@ -154,11 +147,20 @@ while True :
                     f.write("SPEED_BASE : " + str(SPEED_BASE) + "\n")
         buttons = update_buttons_states()
         if buttons[0] :
-            calibration = read_all_qre1113()
-            print(calibration)
+            calibration_dark = read_all_qre1113()
+            print(calibration_dark)
             lcd.clear()
-            lcd.message("Calibration done")
+            lcd.message("Calibration d done")
             sleep(1)
+            lcd.clear()
+        if buttons[1] :
+            calibration = read_all_qre1113()
+            for i in range(8) :
+                calibration_clear[i] = max(calibration_clear[i], calibration[i])
+            print(calibration_clear)
+            lcd.clear()
+            lcd.message("Calibration c done")
+            sleep(0.01)
             lcd.clear()
 
     # run State

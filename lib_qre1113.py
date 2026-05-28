@@ -16,22 +16,24 @@ def read_all_qre1113():
         values[i] = chip.read(i)
     return values
 
-def get_value_binary_format(calibration):
-    values = read_all_qre1113()
-    values_binary = [0,0,0,0,0,0,0,0]
-    for i in range(0,8):
-        if values[i] >= calibration[i] * 0.88 :
-            values_binary[i] = 1
-    return values_binary
+def get_normalize_values(calibration_clear, calibration_delta):
+    raw_values = read_all_qre1113()
+    normalize_values = [0,0,0,0,0,0,0,0]
+    for i in range(8):
+        normalize_values[i] = max(0, raw_values[i] - calibration_clear[i])
+        normalize_values[i] /= calibration_delta[i]
+    return normalize_values
 
-def get_error(calibration):
-    list_values_binary = get_value_binary_format(calibration)
+def get_error(calibration_clear, calibration_delta):
+    normalize_values = get_normalize_values(calibration_clear, calibration_delta)
     error = 0
     counter = 0
     QRE1113_Weights = [-4,-3,-2,-1,1,2,3,4]
     for i in range(8) :
-        counter += list_values_binary[i]
-        error += list_values_binary[i] * QRE1113_Weights[i]
+        counter += normalize_values[i]
+        error += normalize_values[i] * QRE1113_Weights[i]
+    if counter < 0.1 :
+        return 999
     if counter > 0 :
         error /= counter
     return error
